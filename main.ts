@@ -1,48 +1,35 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { SmartcardsSettingsTab } from './SmartcardsSettingsTab';
 import ollama from 'ollama/browser'
 import { GoogleGenAI } from '@google/genai'
 
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
+interface PluginSettings {
+	gemini_api_key: string;
+	hints: string;
+	format: string;
+	filename: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: PluginSettings = {
+	gemini_api_key: '',
+	hints: ["!important, !card"],
+	format: '```anki\n' +
+		'< Header / Title of flashcard >\n' +
+		'===\n' +
+		'< Content / Body of flashcard >\n' +
+		'```',
+	filename: '$name'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class Smartcards extends Plugin {settings: PluginSettings;
 
 	async onload() {
-		this.addCommand({
-			id: 'generate-flashcard',
-			name: 'Generate Flashcards',
-			callback: async () => {
-				const file = this.app.workspace.getActiveFile()
-				if (!file) return
-
-				const data = await this.app.vault.read(file)
-
-				const folder = file.parent?.path
-				if (!folder) return
-
-				console.log(data)
-				await this.query_gemini("Ignore everything of the following that is not explicitly marked as relevant: \n" + data).then (response => {
-					const flashcardFilePath = folder + "/flashcards.md"
-					if (this.app.vault.getFolderByPath(flashcardFilePath) == null)
-						this.app.vault.create(flashcardFilePath, response)
-					else this.app.vault.append(<TFile>this.app.vault.getFileByPath(flashcardFilePath), response)
-				}).catch(error => {
-					new Notice("error")
-				})
-				ollama.ps().then(console.log)
-			}
-		})
-
-		console.log(this.app.workspace.getActiveFile()?.name);
+		await this.loadSettings();
+		this.create_commands()
+		this.addSettingTab(new SmartcardsSettingsTab(this.app, this))
 	}
 
 	onunload() {
@@ -90,6 +77,43 @@ export default class MyPlugin extends Plugin {
 		if (!response.text)
 			return "error"
 		return response.text
+	}
+
+
+
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings)
+	}
+
+	create_commands() {
+		this.addCommand({
+			id: 'generate-flashcard',
+			name: 'Generate Flashcards',
+			callback: async () => {
+				const file = this.app.workspace.getActiveFile()
+				if (!file) return
+
+				const data = await this.app.vault.read(file)
+
+				const folder = file.parent?.path
+				if (!folder) return
+
+				console.log(data)
+				await this.query_gemini("Ignore everything of the following that is not explicitly marked as relevant: \n" + data).then (response => {
+					const flashcardFilePath = folder + "/flashcards.md"
+					if (this.app.vault.getFolderByPath(flashcardFilePath) == null)
+						this.app.vault.create(flashcardFilePath, response)
+					else this.app.vault.append(<TFile>this.app.vault.getFileByPath(flashcardFilePath), response)
+				}).catch(error => {
+					new Notice("error")
+				})
+				ollama.ps().then(console.log)
+			}
+		})
 	}
 }
 

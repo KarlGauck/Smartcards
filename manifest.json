@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "Smartcards",
+	"name": "Smartcards",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "A plugin that uses AI to generate flashcards in a custom format",
+	"author": "Karl Gauck",
+	"authorUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+	"fundingUrl": "https://www.charitywatch.org/top-rated-charities",
 	"isDesktopOnly": false
 }
