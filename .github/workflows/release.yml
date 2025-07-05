@@ -7,7 +7,7 @@ on:
 
 jobs:
 	build:
-		runs-on: 6.15.4-arch2-1
+		runs-on: ubuntu-latest
 		permissions:
 			contents: write
 		steps:
@@ -30,7 +30,7 @@ jobs:
 						tag="${GITHUB_REF#refs/tags/}"
 
 					gh release create "$tag" \
-						--title="$tag" \
+						--title="Version $tag" \
 						--draft \
 						main.js mainifest.json styles.css
 
