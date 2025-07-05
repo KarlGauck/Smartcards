@@ -81,7 +81,7 @@ export default class MyPlugin extends Plugin {
 					"< Header / Title of flashcard >" +
 					"===" +
 					"< Content / Body of flashcard >" +
-					"```" +
+					"```"
 			}
 		})
 
