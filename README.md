@@ -1,5 +1,5 @@
 # Smartcards
-Smartcards is a plugin that uses [gemini](https://ai.google.dev/gemini-api/docs?hl=de) or [ollama](https://ollama.com) generate (text-based) flashcards from notes inside your vault.
+Smartcards is an obsidian-plugin that uses [Gemini](https://ai.google.dev/gemini-api/docs?hl=de) or [Ollama](https://ollama.com) generate (text-based) flashcards from notes inside your vault.
 
 You can leave hints inside your vault to specify exactly, which information should be converted into cards.
 You can also define a format in which the cards 
