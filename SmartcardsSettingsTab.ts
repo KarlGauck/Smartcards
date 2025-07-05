@@ -17,7 +17,7 @@ export class SmartcardsSettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Gemini API Key')
-			.setDesc('Get your API key from https://gemini.com/api/keys')
+			.setDesc('Get your API key from https://ai.google.dev/gemini-api/docs?hl=de')
 			.addText(text => text
 				.setPlaceholder('Enter your Gemini API key')
 				.setValue(this.plugin.settings.gemini_api_key)

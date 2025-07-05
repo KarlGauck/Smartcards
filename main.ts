@@ -1,5 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile} from 'obsidian';
 import { SmartcardsSettingsTab } from './SmartcardsSettingsTab';
+// @ts-ignore
 import ollama from 'ollama/browser'
 import { GoogleGenAI } from '@google/genai'
 
@@ -15,7 +16,8 @@ interface PluginSettings {
 
 const DEFAULT_SETTINGS: PluginSettings = {
 	gemini_api_key: '',
-	hints: ["!important, !card"],
+	hints: "!important\n" +
+		"!card",
 	format: '```anki\n' +
 		'< Header / Title of flashcard >\n' +
 		'===\n' +
@@ -47,39 +49,37 @@ export default class Smartcards extends Plugin {settings: PluginSettings;
 	}
 
 	async query_gemini(context_data: string): Promise<string>  {
-		console.log('BRO')
-
-		const ai = new GoogleGenAI({apiKey: 'AIzaSyCYYxKezxXtoMONTsb9GvddFCFvAD0dWE8'})
-
-		console.log('HEY!')
+		const ai = new GoogleGenAI({apiKey: this.settings.gemini_api_key})
 
 		const response = await ai.models.generateContent({
 			model: 'gemini-2.5-flash',
 			contents: context_data,
 			config: {
-				systemInstruction: "You should generate flashcards about all of the topics specified by the user as being relevant." +
-					"If there are no relevant topics, meaning, there is no sentence that explicitly asks for a flashcard, return an empty string." +
-					"Asking for a flashcard are stated in the following format:" +
-					"" +
-					"card: < information about which topics are relevant >" +
-					"" +
-					"When generating a flashcard, do it with the following format:" +
-					"```anki" +
-					"< Header / Title of flashcard >" +
-					"===" +
-					"< Content / Body of flashcard >" +
-					"```"
+				systemInstruction: "You should generate flashcards about all of the topics specified by the user as being relevant.\n" +
+					"If there are no relevant topics, meaning, there is no sentence that explicitly asks for a flashcard, return an empty string.\n" +
+					"Asking for a flashcard are stated in the following format:\n" +
+					"\n" +
+					this.settings.hints +
+					"\n" +
+					"Those hints might be followed by a simple description of the requested card (Topic, scale etc)\n" +
+					"When generating a flashcard, do it with the following format:\n" +
+					"\n" +
+					this.settings.format + "\n" +
+					"\n" +
+					"As the input, you will get the content, the user wants to convert into flashcards as well as the already existing notes.\n" +
+					"You should only generate a flashcard if there is no other flashcard with the same content already in the file.\n" +
+					"If not specified otherwiese after a hint, you should use the language, used in the file, to generate the flashcard.\n" +
+					"\n" +
+					"For example, if there is a mathematical note that includes a definition, a theorem, an annotation and a proof of the theorem and the user specified " +
+					"the hint \"!important: all definitions and theorems\", the definition and the theorem should become flashcards, the annotation and the proof should be ignored." +
+					"Also, the title of the flashcards should be meaningful. For example, if the theorem is named \"Paragraph 1.16.4: Chinese remainder theorem\", the title of the flashcard should be  \"Chinese remainder theorem\" instead of \"Paragraph 1.16.4\""
 			}
 		})
 
-		console.log('HI')
-		console.log(response.promptFeedback)
 		if (!response.text)
-			return "error"
+			return ""
 		return response.text
 	}
-
-
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
@@ -93,26 +93,50 @@ export default class Smartcards extends Plugin {settings: PluginSettings;
 		this.addCommand({
 			id: 'generate-flashcard',
 			name: 'Generate Flashcards',
-			callback: async () => {
-				const file = this.app.workspace.getActiveFile()
-				if (!file) return
+			callback: () => { this.generate_flashcards() }
+		})
+	}
 
-				const data = await this.app.vault.read(file)
+	async generate_flashcards() {
+		console.log(this)
+		const file = this.app.workspace.getActiveFile()
+		if (!file) {
+			new Notice("No active file found")
+			return
+		}
 
-				const folder = file.parent?.path
-				if (!folder) return
+		const file_content = await this.app.vault.read(file)
+		const folder = file.parent?.path
+		if (!folder) {
+			new Notice("No parent folder found")
+			return
+		}
 
-				console.log(data)
-				await this.query_gemini("Ignore everything of the following that is not explicitly marked as relevant: \n" + data).then (response => {
-					const flashcardFilePath = folder + "/flashcards.md"
-					if (this.app.vault.getFolderByPath(flashcardFilePath) == null)
-						this.app.vault.create(flashcardFilePath, response)
-					else this.app.vault.append(<TFile>this.app.vault.getFileByPath(flashcardFilePath), response)
-				}).catch(error => {
-					new Notice("error")
-				})
-				ollama.ps().then(console.log)
-			}
+		const filename = this.settings.filename.replace("$name", file.basename)
+		const target_file_path = (folder + filename + ".md").replace("/", "")
+		const target_file = this.app.vault.getFileByPath(target_file_path)
+
+		const existing_flashcards = target_file == null ? "" : await this.app.vault.read(target_file)
+
+		new Notice("Generating flashcards...")
+
+		await this.query_gemini(
+			"** The following is the file, the flashcards should be generated from.\n" +
+			"Ignore everything of the following that is not explicitly marked as relevant using the hints: \n" + file_content + "\n\n" +
+			"** The following are the already existing flashcards. Only generate flashcards that don't already exist:\n" +
+			existing_flashcards
+		)
+		.then (response => {
+
+			if (target_file == null)
+				this.app.vault.create(target_file_path, "\n" + response + "\n")
+			else
+				this.app.vault.append(<TFile> target_file, "\n" + response + "\n")
+
+			new Notice("Flashcards generated!")
+
+		}).catch(error => {
+			new Notice("error while requesting gemini")
 		})
 	}
 }
