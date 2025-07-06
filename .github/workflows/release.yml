@@ -19,8 +19,8 @@ jobs:
 
       - name:	Build plugin
         run: |
+          npm ci
           npm ls @google/genai 
-          npm install
           npm run build
       - name: create release
         env:
