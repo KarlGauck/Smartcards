@@ -112,6 +112,7 @@ export default class Smartcards extends Plugin {settings: PluginSettings;
 			return
 		}
 
+
 		const filename = this.settings.filename.replace("$name", file.basename)
 		const target_file_path = folder + filename + ".md"
 		const target_file = this.app.vault.getFileByPath(target_file_path)
