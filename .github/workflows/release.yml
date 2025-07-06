@@ -30,4 +30,4 @@ jobs:
           gh release create "$tag" \
                   --title="Version $tag" \
                   --draft \
-                  main.js mainifest.json styles.css
+                  main.js manifest.json styles.css
